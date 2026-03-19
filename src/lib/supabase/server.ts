@@ -1,19 +1,20 @@
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
-function getSupabaseEnv() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+function requireEnv(name: string) {
+  const value = process.env[name];
 
-  if (!url || !anonKey) {
-    throw new Error("Missing Supabase server environment variables.");
+  if (!value) {
+    throw new Error(`Missing Supabase server environment variable: ${name}`);
   }
 
-  return { url, anonKey };
+  return value;
 }
 
 export function createSupabaseServerClient() {
-  const { url, anonKey } = getSupabaseEnv();
+  const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const anonKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
   const cookieStore = cookies() as ReturnType<typeof cookies> & {
     set?: (options: { name: string; value: string } & Record<string, unknown>) => void;
   };
@@ -32,6 +33,18 @@ export function createSupabaseServerClient() {
           cookieStore.set({ name, value, ...options });
         });
       },
+    },
+  });
+}
+
+export function createSupabaseAdminClient() {
+  const url = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
     },
   });
 }
