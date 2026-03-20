@@ -21,42 +21,79 @@ export default function SignUpPage() {
     setLoading(true);
     setError("");
 
+    const name = formData.name.trim();
+    const email = formData.email.trim();
+    const password = formData.password;
+
+    if (!name) {
+      setError("Please enter your full name.");
+      setLoading(false);
+      return;
+    }
+
+    if (!email) {
+      setError("Please enter your email address.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const signupResponse = await fetch("/api/auth/sign-up", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      console.log("[sign-up] Starting provider signup flow", { email, name });
+
+      console.log("[sign-up] Step 1: creating Supabase auth user");
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          },
         },
-        body: JSON.stringify(formData),
       });
 
-      const signupPayload = (await signupResponse.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-
-      if (!signupResponse.ok) {
-        throw new Error(signupPayload?.error ?? "Failed to create account");
-      }
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
+      console.log("[sign-up] Step 1 result", {
+        userId: signUpData.user?.id ?? null,
+        hasSession: Boolean(signUpData.session),
       });
 
-      if (signInError) {
-        throw signInError;
+      if (signUpError) {
+        console.log("[sign-up] Step 1 failed", signUpError);
+        setError(`Auth signup failed: ${signUpError.message}`);
+        return;
       }
 
+      if (!signUpData.user?.id) {
+        console.log("[sign-up] Step 1 returned no user id");
+        setError("Auth signup failed: Supabase did not return a user record.");
+        return;
+      }
+
+      console.log("[sign-up] Step 2: inserting provider record", {
+        userId: signUpData.user.id,
+        email,
+        name,
+      });
+
+      const { error: providerError } = await supabase.from("providers").insert({
+        user_id: signUpData.user.id,
+        email,
+        name,
+      });
+
+      if (providerError) {
+        console.log("[sign-up] Step 2 failed", providerError);
+        setError(`Provider profile creation failed: ${providerError.message}`);
+        return;
+      }
+
+      console.log("[sign-up] Step 2 succeeded");
+      console.log("[sign-up] Signup complete, redirecting to dashboard");
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
       console.error("Signup error:", err);
       const message = err instanceof Error ? err.message : "Failed to create account";
-      if (message.toLowerCase().includes("already")) {
-        setError("An account with that email already exists. Try signing in instead.");
-      } else {
-        setError(message);
-      }
+      setError(message);
     } finally {
       setLoading(false);
     }
