@@ -20,38 +20,40 @@ export default function SignInPage() {
     setLoading(true);
     setError("");
 
+    const email = formData.email.trim();
+    const password = formData.password;
+
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
+      console.log("[sign-in] Starting sign-in flow", { email });
+      console.log("[sign-in] Calling supabase.auth.signInWithPassword");
+
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
       if (signInError) {
-        throw signInError;
+        console.log("[sign-in] Sign-in failed", {
+          message: signInError.message,
+          name: signInError.name,
+          status: "status" in signInError ? signInError.status : undefined,
+        });
+        setError(signInError.message);
+        return;
       }
 
-      const ensureProviderResponse = await fetch("/api/auth/ensure-provider", {
-        method: "POST",
+      console.log("[sign-in] Sign-in succeeded", {
+        userId: signInData.user?.id ?? null,
+        hasSession: Boolean(signInData.session),
       });
-
-      const ensureProviderPayload = (await ensureProviderResponse.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-
-      if (!ensureProviderResponse.ok) {
-        throw new Error(ensureProviderPayload?.error ?? "Failed to load provider account");
-      }
+      console.log("[sign-in] Redirecting to dashboard");
 
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
-      console.error("Sign in error:", err);
+      console.error("[sign-in] Unexpected sign-in error:", err);
       const message = err instanceof Error ? err.message : "Failed to sign in";
-      if (message.toLowerCase().includes("invalid login credentials")) {
-        setError("No account matches that email and password yet. Create an account first.");
-      } else {
-        setError(message);
-      }
+      setError(message);
     } finally {
       setLoading(false);
     }
