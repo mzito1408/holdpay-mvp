@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { createSupabaseAdminClient, getSupabaseServerUser } from "@/lib/supabase/server";
+import {
+  createSupabaseAdminClient,
+  createSupabaseServerClient,
+} from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils";
 
 function getStatusClasses(status: string) {
@@ -13,8 +16,11 @@ function getStatusClasses(status: string) {
 }
 
 export default async function DashboardPage() {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const admin = createSupabaseAdminClient();
-  const user = await getSupabaseServerUser();
 
   if (!user) {
     redirect("/sign-in");

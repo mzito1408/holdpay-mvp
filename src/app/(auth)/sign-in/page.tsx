@@ -46,10 +46,15 @@ export default function SignInPage() {
         userId: signInData.user?.id ?? null,
         hasSession: Boolean(signInData.session),
       });
-      console.log("[sign-in] Redirecting to dashboard");
 
-      router.push("/dashboard");
-      router.refresh();
+      if (signInData?.user) {
+        console.log("[sign-in] Sign-in successful, redirecting...");
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
+
+      setError("Sign-in succeeded but no user was returned.");
     } catch (err: unknown) {
       console.error("[sign-in] Unexpected sign-in error:", err);
       const message = err instanceof Error ? err.message : "Failed to sign in";
