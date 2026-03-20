@@ -85,6 +85,12 @@ export default function PaymentPage() {
   const [error, setError] = useState("");
 
   const mountPaymentElement = useCallback(async (nextClientSecret: string) => {
+    console.log("[payment] About to initialize Stripe.js", {
+      hasClientSecret: Boolean(nextClientSecret),
+      hasKey: !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+      keyStart: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.substring(0, 10),
+    });
+
     const stripe = await getStripeJs();
 
     if (!stripe) {

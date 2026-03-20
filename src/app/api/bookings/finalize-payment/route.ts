@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 
-import { getStripeServer } from "@/lib/stripe";
+import { getStripeServer } from "@/lib/stripe-server";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 type FinalizePaymentBody = {
