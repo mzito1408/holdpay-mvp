@@ -64,6 +64,14 @@ function isValidEmail(value: string) {
 export default function PaymentPage() {
   const params = useParams();
 
+  useEffect(() => {
+    console.log("ENV CHECK:", {
+      hasStripeKey: !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+      keyPrefix: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.substring(0, 7),
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    });
+  }, []);
+
   const reference = useMemo(() => {
     const param = params.reference;
     return Array.isArray(param) ? param[0] : param;
