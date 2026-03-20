@@ -30,11 +30,28 @@ export default function SignInPage() {
         throw signInError;
       }
 
+      const ensureProviderResponse = await fetch("/api/auth/ensure-provider", {
+        method: "POST",
+      });
+
+      const ensureProviderPayload = (await ensureProviderResponse.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+
+      if (!ensureProviderResponse.ok) {
+        throw new Error(ensureProviderPayload?.error ?? "Failed to load provider account");
+      }
+
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
       console.error("Sign in error:", err);
-      setError(err instanceof Error ? err.message : "Failed to sign in");
+      const message = err instanceof Error ? err.message : "Failed to sign in";
+      if (message.toLowerCase().includes("invalid login credentials")) {
+        setError("No account matches that email and password yet. Create an account first.");
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }

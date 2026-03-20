@@ -22,38 +22,41 @@ export default function SignUpPage() {
     setError("");
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const signupResponse = await fetch("/api/auth/sign-up", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const signupPayload = (await signupResponse.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+
+      if (!signupResponse.ok) {
+        throw new Error(signupPayload?.error ?? "Failed to create account");
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
-        options: {
-          data: { name: formData.name },
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
-        },
       });
 
-      if (authError) {
-        throw authError;
-      }
-
-      if (!authData.user) {
-        throw new Error("No user returned from signup");
-      }
-
-      const { error: providerError } = await supabase.from("providers").insert({
-        user_id: authData.user.id,
-        email: formData.email,
-        name: formData.name,
-      });
-
-      if (providerError) {
-        throw providerError;
+      if (signInError) {
+        throw signInError;
       }
 
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
       console.error("Signup error:", err);
-      setError(err instanceof Error ? err.message : "Failed to create account");
+      const message = err instanceof Error ? err.message : "Failed to create account";
+      if (message.toLowerCase().includes("already")) {
+        setError("An account with that email already exists. Try signing in instead.");
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }

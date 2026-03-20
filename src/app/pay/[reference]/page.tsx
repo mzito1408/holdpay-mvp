@@ -8,7 +8,6 @@ import type {
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { supabase } from "@/lib/supabase/client";
 import { getStripeJs } from "@/lib/stripe";
 import { formatCurrency } from "@/lib/utils";
 
@@ -29,6 +28,12 @@ type BookingRecord = {
 type ProviderRecord = {
   id: string;
   name: string | null;
+};
+
+type PublicBookingResponse = {
+  booking?: BookingRecord;
+  provider?: ProviderRecord;
+  error?: string;
 };
 
 type CreatePaymentIntentResponse = {
@@ -134,35 +139,23 @@ export default function PaymentPage() {
     setError("");
 
     try {
-      const { data: bookingData, error: bookingError } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("reference", reference)
-        .single();
+      const res = await fetch(`/api/public/bookings/${encodeURIComponent(reference)}`, {
+        cache: "no-store",
+      });
 
-      if (bookingError || !bookingData) {
-        throw new Error("Booking not found");
+      const data = (await res.json()) as PublicBookingResponse;
+
+      if (!res.ok || !data.booking || !data.provider) {
+        throw new Error(data.error || "Booking not found");
       }
 
-      if (bookingData.status !== "awaiting_payment") {
+      if (data.booking.status !== "awaiting_payment") {
         throw new Error("This booking has already been paid or cancelled");
       }
 
-      const { data: providerData, error: providerError } = await supabase
-        .from("providers")
-        .select("id, name")
-        .eq("id", bookingData.provider_id)
-        .single();
-
-      if (providerError || !providerData) {
-        throw new Error("Provider not found");
-      }
-
-      const typedBooking = bookingData as BookingRecord;
-
-      setBooking(typedBooking);
-      setProvider(providerData as ProviderRecord);
-      setEmail(typedBooking.client_email ?? "");
+      setBooking(data.booking);
+      setProvider(data.provider);
+      setEmail("");
     } catch (err: unknown) {
       console.error("Load payment page error:", err);
       setError(err instanceof Error ? err.message : "Failed to load booking");

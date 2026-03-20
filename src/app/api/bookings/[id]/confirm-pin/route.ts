@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   createSupabaseAdminClient,
-  createSupabaseServerClient,
+  getSupabaseServerUser,
 } from "@/lib/supabase/server";
 
 type ConfirmPinRouteContext = {
@@ -28,15 +28,10 @@ export async function POST(
   { params }: ConfirmPinRouteContext,
 ) {
   try {
-    const supabase = createSupabaseServerClient();
     const admin = createSupabaseAdminClient();
+    const user = await getSupabaseServerUser();
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

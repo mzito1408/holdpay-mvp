@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { supabase } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils";
 
 type BookingRecord = {
@@ -26,6 +25,12 @@ type ProviderRecord = {
   id: string;
   name?: string | null;
   user_id: string;
+};
+
+type BookingReferenceResponse = {
+  booking?: BookingRecord;
+  provider?: ProviderRecord;
+  error?: string;
 };
 
 function getStatusClasses(status: string) {
@@ -80,47 +85,31 @@ export default function BookingReferencePage() {
     }
 
     setPageLoading(true);
+    setError("");
 
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      const res = await fetch(`/api/bookings/reference/${encodeURIComponent(reference)}`, {
+        cache: "no-store",
+      });
 
-      if (userError || !user) {
+      const data = (await res.json()) as BookingReferenceResponse;
+
+      if (res.status === 401) {
         router.push("/sign-in");
         return;
       }
 
-      const { data: providerData, error: providerError } = await supabase
-        .from("providers")
-        .select("id, name, user_id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (providerError || !providerData) {
+      if (res.status === 403 || res.status === 404) {
         router.push("/dashboard");
         return;
       }
 
-      const { data: bookingData, error: bookingError } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("reference", reference)
-        .single();
-
-      if (bookingError || !bookingData) {
-        router.push("/dashboard");
-        return;
+      if (!res.ok || !data.booking || !data.provider) {
+        throw new Error(data.error || "Failed to load booking");
       }
 
-      if (bookingData.provider_id !== providerData.id) {
-        router.push("/dashboard");
-        return;
-      }
-
-      setProvider(providerData as ProviderRecord);
-      setBooking(bookingData as BookingRecord);
+      setProvider(data.provider);
+      setBooking(data.booking);
     } catch (err: unknown) {
       console.error("Load booking error:", err);
       setError(err instanceof Error ? err.message : "Failed to load booking");

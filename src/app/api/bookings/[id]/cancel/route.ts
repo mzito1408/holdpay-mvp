@@ -5,7 +5,7 @@ import { getStripeServer } from "@/lib/stripe";
 import { calculateRefund } from "@/lib/utils";
 import {
   createSupabaseAdminClient,
-  createSupabaseServerClient,
+  getSupabaseServerUser,
 } from "@/lib/supabase/server";
 
 type CancelBookingRouteContext = {
@@ -151,13 +151,9 @@ export async function POST(
     const typedBooking = booking as BookingWithPaymentData;
 
     if (isProviderCancellation) {
-      const supabase = createSupabaseServerClient();
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      const user = await getSupabaseServerUser();
 
-      if (userError || !user) {
+      if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
