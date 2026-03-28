@@ -42,7 +42,7 @@ export async function GET(
     const { data: booking, error: bookingError } = await admin
       .from("bookings")
       .select(
-        "id, provider_id, reference, deposit_amount, client_email, service_date, refund_policy, custom_refund_percentage, status, created_at, paid_at, completed_at",
+        "id, provider_id, reference, deposit_amount, client_email, confirmation_pin, service_date, refund_policy, custom_refund_percentage, status, created_at, paid_at, completed_at",
       )
       .eq("reference", reference)
       .single();

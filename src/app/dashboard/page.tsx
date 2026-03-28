@@ -55,111 +55,159 @@ export default async function DashboardPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-2 text-gray-600">Welcome back, {provider.name}</p>
+    <div className="min-h-screen bg-gray-50 pb-12">
+      <div className="mx-auto max-w-5xl px-4 pt-8 sm:px-6 lg:px-8">
+        <div className="mb-10">
+          <p className="text-gray-600">Welcome back, {provider.name}</p>
         </div>
 
-        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="rounded-lg bg-white p-6 shadow">
-            <p className="text-sm text-gray-600">Active Bookings</p>
-            <p className="mt-2 text-3xl font-bold text-gray-900">
+        <div className="mb-10 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="text-sm text-gray-500">Active Bookings</p>
+            <p className="mt-2 text-4xl font-semibold text-gray-900">
               {activeBookings.length}
             </p>
           </div>
-          <div className="rounded-lg bg-white p-6 shadow">
-            <p className="text-sm text-gray-600">Completed</p>
-            <p className="mt-2 text-3xl font-bold text-gray-900">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="text-sm text-gray-500">Completed</p>
+            <p className="mt-2 text-4xl font-semibold text-gray-900">
               {completedBookings.length}
             </p>
           </div>
-          <div className="rounded-lg bg-white p-6 shadow">
-            <p className="text-sm text-gray-600">Total Earnings</p>
-            <p className="mt-2 text-3xl font-bold text-gray-900">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="text-sm text-gray-500">Total Earnings</p>
+            <p className="mt-2 text-4xl font-semibold text-gray-900">
               {formatCurrency(totalEarnings)}
             </p>
           </div>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-8">
           <Link
             href="/dashboard/create"
-            className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="inline-flex items-center rounded-xl bg-sky-500 px-6 py-3 font-medium text-white transition-colors hover:bg-sky-600"
           >
-            Create New Booking
+            + Create New Booking
           </Link>
         </div>
 
-        <div className="overflow-hidden rounded-lg bg-white shadow">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Reference
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Client
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Created
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {bookingsList.length > 0 ? (
-                bookingsList.map((booking) => (
-                  <tr key={booking.id}>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                      {booking.reference}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                      {formatCurrency(booking.deposit_amount)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                      {booking.client_email || "Not paid"}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusClasses(
-                          booking.status,
-                        )}`}
-                      >
-                        {booking.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                      {new Date(booking.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                      <Link
-                        href={`/booking/${booking.reference}`}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        View
-                      </Link>
+        <div>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">Bookings</h2>
+
+          <div className="hidden overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm md:block">
+            <table className="w-full">
+              <thead className="border-b border-gray-200 bg-gray-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Reference
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Amount
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Client
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Created
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {bookingsList.length > 0 ? (
+                  bookingsList.map((booking) => (
+                    <tr key={booking.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-5 font-mono text-sm font-medium text-gray-900">
+                        {booking.reference}
+                      </td>
+                      <td className="px-6 py-5 text-sm font-medium text-gray-900">
+                        {formatCurrency(booking.deposit_amount)}
+                      </td>
+                      <td className="px-6 py-5 text-sm text-gray-600">
+                        {booking.client_email || "Not paid yet"}
+                      </td>
+                      <td className="px-6 py-5">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusClasses(
+                            booking.status,
+                          )}`}
+                        >
+                          {booking.status.replace(/_/g, " ").toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-sm text-gray-500">
+                        {new Date(booking.created_at).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </td>
+                      <td className="px-6 py-5">
+                        <Link
+                          href={`/booking/${booking.reference}`}
+                          className="font-medium text-sky-500 hover:underline"
+                        >
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-500">
+                      No bookings yet. Create your first booking to get started.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                    No bookings yet. Create your first booking to get started.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="space-y-4 md:hidden">
+            {bookingsList.length > 0 ? (
+              bookingsList.map((booking) => (
+                <div
+                  key={booking.id}
+                  className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-mono text-base font-semibold text-gray-900">
+                        {booking.reference}
+                      </div>
+                      <div className="mt-1 text-lg font-semibold text-gray-900">
+                        {formatCurrency(booking.deposit_amount)}
+                      </div>
+                    </div>
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusClasses(
+                        booking.status,
+                      )}`}
+                    >
+                      {booking.status.replace(/_/g, " ").toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="mt-3 text-sm text-gray-600">
+                    {booking.client_email || "Not paid yet"}
+                  </div>
+                  <Link
+                    href={`/booking/${booking.reference}`}
+                    className="mt-6 block w-full rounded-xl bg-sky-500 py-3.5 text-center font-medium text-white transition-colors hover:bg-sky-600"
+                  >
+                    View Booking
+                  </Link>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center text-sm text-gray-500 shadow-sm">
+                No bookings yet. Create your first booking to get started.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
