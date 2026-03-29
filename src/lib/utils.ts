@@ -53,3 +53,37 @@ export function formatCurrency(cents: number): string {
 export function dollarsToCents(dollars: number): number {
   return Math.round(dollars * 100);
 }
+
+export interface FeeBreakdown {
+  depositAmount: number;
+  stripeFee: number;
+  holdpayFee: number;
+  netToProvider: number;
+  stripePercentage: number;
+  holdpayPercentage: number;
+}
+
+export function calculateFees(depositAmountCents: number): FeeBreakdown {
+  const stripeFee = Math.round(depositAmountCents * 0.029 + 30);
+  const holdpayFee = Math.round(depositAmountCents * 0.021);
+  const netToProvider = depositAmountCents - stripeFee - holdpayFee;
+
+  return {
+    depositAmount: depositAmountCents,
+    stripeFee,
+    holdpayFee,
+    netToProvider,
+    stripePercentage: 2.9,
+    holdpayPercentage: 2.1,
+  };
+}
+
+export function formatFeeBreakdown(fees: FeeBreakdown): string {
+  return `
+Deposit: ${formatCurrency(fees.depositAmount)}
+Stripe Fee (${fees.stripePercentage}% + $0.30): -${formatCurrency(fees.stripeFee)}
+HoldPay Fee (${fees.holdpayPercentage}%): -${formatCurrency(fees.holdpayFee)}
+━━━━━━━━━━━━━━━━━━━━━
+Net to Provider: ${formatCurrency(fees.netToProvider)}
+  `.trim();
+}

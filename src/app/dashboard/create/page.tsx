@@ -14,6 +14,9 @@ function isRefundPolicy(value: string): value is RefundPolicy {
 
 export default function CreateBookingPage() {
   const router = useRouter();
+  const MIN_DEPOSIT_AMOUNT = 0.5;
+  const MAX_DEPOSIT_AMOUNT = 999999.99;
+  const HIGH_AMOUNT_THRESHOLD = 1000;
 
   const [formData, setFormData] = useState({
     amount: "",
@@ -22,13 +25,48 @@ export default function CreateBookingPage() {
     customPercentage: "",
   });
 
+  const [clientName, setClientName] = useState("");
+  const [serviceDescription, setServiceDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setLoading(true);
     setError("");
+
+    const depositDollars = parseFloat(formData.amount);
+
+    if (Number.isNaN(depositDollars) || depositDollars <= 0) {
+      setError("Please enter a valid deposit amount");
+      return;
+    }
+
+    if (depositDollars < MIN_DEPOSIT_AMOUNT) {
+      setError(`Minimum deposit is $${MIN_DEPOSIT_AMOUNT.toFixed(2)}`);
+      return;
+    }
+
+    if (depositDollars > MAX_DEPOSIT_AMOUNT) {
+      setError(
+        `Maximum deposit is ${MAX_DEPOSIT_AMOUNT.toLocaleString("en-US", {
+          style: "currency",
+          currency: "USD",
+        })}`,
+      );
+      return;
+    }
+
+    if (depositDollars >= HIGH_AMOUNT_THRESHOLD) {
+      const confirmed = window.confirm(
+        `This is a large deposit ($${depositDollars.toFixed(2)}). Deposits over $${HIGH_AMOUNT_THRESHOLD.toFixed(2)} may require additional verification. Continue?`,
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    setLoading(true);
 
     try {
       const {
@@ -49,11 +87,6 @@ export default function CreateBookingPage() {
         throw new Error("Provider not found");
       }
 
-      const amount = parseFloat(formData.amount);
-      if (!Number.isFinite(amount) || amount <= 0) {
-        throw new Error("Deposit amount must be greater than 0");
-      }
-
       let customRefundPercentage: number | null = null;
       if (formData.refundPolicy === "custom") {
         const percentage = parseInt(formData.customPercentage, 10);
@@ -69,10 +102,12 @@ export default function CreateBookingPage() {
       const { error: insertError } = await supabase.from("bookings").insert({
         provider_id: provider.id,
         reference,
-        deposit_amount: dollarsToCents(amount),
+        deposit_amount: dollarsToCents(depositDollars),
         service_date: formData.serviceDate || null,
         refund_policy: formData.refundPolicy,
         custom_refund_percentage: customRefundPercentage,
+        client_name: clientName.trim() || null,
+        service_description: serviceDescription.trim() || null,
         confirmation_pin: pin,
         status: "awaiting_payment",
       });
@@ -109,6 +144,38 @@ export default function CreateBookingPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
+              <label htmlFor="clientName" className="mb-2 block text-sm font-medium text-gray-900">
+                Client Name (optional)
+              </label>
+              <input
+                id="clientName"
+                type="text"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="input-premium"
+                placeholder="John Smith"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="serviceDescription"
+                className="mb-2 block text-sm font-medium text-gray-900"
+              >
+                Service Description (optional)
+              </label>
+              <textarea
+                id="serviceDescription"
+                value={serviceDescription}
+                onChange={(e) => setServiceDescription(e.target.value)}
+                rows={3}
+                className="input-premium resize-none"
+                placeholder="Wedding photography package - Full day coverage"
+              />
+              <p className="mt-2 text-xs text-gray-500">Visible to client on payment page</p>
+            </div>
+
+            <div>
               <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
                 Deposit Amount ($) *
               </label>
@@ -116,15 +183,19 @@ export default function CreateBookingPage() {
                 id="amount"
                 type="number"
                 step="0.01"
-                min="1"
+                min={MIN_DEPOSIT_AMOUNT}
+                max={MAX_DEPOSIT_AMOUNT}
                 required
                 value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-                placeholder="100.00"
+                onChange={(e) => {
+                  setFormData({ ...formData, amount: e.target.value });
+                  setError("");
+                }}
+                className="input-premium"
+                placeholder="0.00"
               />
-              <p className="mt-1 text-sm text-gray-500">
-                The amount your client will pay as a deposit
+              <p className="mt-2 text-xs text-gray-500">
+                Minimum: ${MIN_DEPOSIT_AMOUNT.toFixed(2)} • Maximum: ${MAX_DEPOSIT_AMOUNT.toLocaleString()}
               </p>
             </div>
 

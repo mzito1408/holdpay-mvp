@@ -13,16 +13,19 @@ export function getStripeJs() {
   const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
   if (!publishableKey) {
-    console.error("Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
+    console.error("[Stripe] Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
     return Promise.resolve(null);
   }
 
-  console.log("Stripe initialized with key:", `${publishableKey.substring(0, 10)}...`);
-
+  console.log("[Stripe] Initializing with key:", publishableKey.substring(0, 12) + "...");
   stripeJsPromise = loadStripe(publishableKey);
   return stripeJsPromise;
 }
 
-export function formatAmountForStripe(amount: number) {
+export function formatAmountForStripe(amount: number): number {
   return Math.round(amount * 100);
+}
+
+export function formatAmountFromStripe(amount: number): number {
+  return amount / 100;
 }

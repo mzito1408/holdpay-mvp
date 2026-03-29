@@ -1,13 +1,15 @@
 "use client";
 
+import jsPDF from "jspdf";
 import { useParams, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/lib/supabase/client";
-import { formatCurrency } from "@/lib/utils";
+import { calculateFees, formatCurrency } from "@/lib/utils";
 
 type BookingRecord = {
   id: string;
+  provider_id: string;
   reference: string;
   deposit_amount: number;
   client_email: string | null;
@@ -19,6 +21,13 @@ type BookingRecord = {
 
 type FinalizePaymentResponse = {
   booking?: BookingRecord;
+  error?: string;
+};
+
+type PublicBookingResponse = {
+  provider?: {
+    name: string | null;
+  };
   error?: string;
 };
 
@@ -44,7 +53,7 @@ function formatDateTime(value: string | null) {
   return new Date(value).toLocaleString();
 }
 
-export default function SuccessPage() {
+function SuccessPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
 
@@ -61,6 +70,7 @@ export default function SuccessPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [providerName, setProviderName] = useState<string | null>(null);
 
   const loadBooking = useCallback(async () => {
     if (!reference) {
@@ -70,7 +80,7 @@ export default function SuccessPage() {
     const { data, error: bookingError } = await supabase
       .from("bookings")
       .select(
-        "id, reference, deposit_amount, client_email, confirmation_pin, service_date, status, paid_at",
+        "id, provider_id, reference, deposit_amount, client_email, confirmation_pin, service_date, status, paid_at",
       )
       .eq("reference", reference)
       .single();
@@ -80,6 +90,21 @@ export default function SuccessPage() {
     }
 
     const nextBooking = data as BookingRecord;
+
+    try {
+      const providerRes = await fetch(`/api/public/bookings/${encodeURIComponent(reference)}`, {
+        cache: "no-store",
+      });
+
+      if (providerRes.ok) {
+        const providerData = (await providerRes.json()) as PublicBookingResponse;
+        setProviderName(providerData.provider?.name ?? null);
+      } else {
+        setProviderName(null);
+      }
+    } catch {
+      setProviderName(null);
+    }
 
     setBooking(nextBooking);
     setTimeLeft(
@@ -208,6 +233,60 @@ export default function SuccessPage() {
     }
   }
 
+  function downloadReceipt() {
+    if (!booking) {
+      return;
+    }
+
+    const fees = calculateFees(booking.deposit_amount);
+    const doc = new jsPDF();
+
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("HoldPay Payment Receipt", 20, 20);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Receipt Date: ${new Date().toLocaleDateString()}`, 20, 35);
+    doc.text(`Booking Reference: ${booking.reference}`, 20, 42);
+    doc.text(`Provider: ${providerName || "N/A"}`, 20, 49);
+
+    doc.line(20, 55, 190, 55);
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment Breakdown", 20, 65);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Deposit Amount:", 20, 75);
+    doc.text(formatCurrency(fees.depositAmount), 150, 75);
+
+    doc.text(`Stripe Processing Fee (${fees.stripePercentage}% + $0.30):`, 20, 82);
+    doc.text(`-${formatCurrency(fees.stripeFee)}`, 150, 82);
+
+    doc.text(`HoldPay Service Fee (${fees.holdpayPercentage}%):`, 20, 89);
+    doc.text(`-${formatCurrency(fees.holdpayFee)}`, 150, 89);
+
+    doc.line(20, 95, 190, 95);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Net to Provider:", 20, 105);
+    doc.text(formatCurrency(fees.netToProvider), 150, 105);
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("Payment settles per agreed terms. Fees deducted before transfer.", 20, 120);
+    doc.text("For questions, contact: support@holdpay.com", 20, 127);
+
+    doc.setFontSize(8);
+    doc.text("HoldPay • Simply the tool for booking deposits", 105, 280, {
+      align: "center",
+    });
+
+    doc.save(`HoldPay-Receipt-${booking.reference}.pdf`);
+  }
+
   if (pageLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-700">
@@ -227,6 +306,7 @@ export default function SuccessPage() {
     );
   }
 
+  const fees = calculateFees(booking.deposit_amount);
   const isCancelled = booking.status === "cancelled_client_early";
   const isDepositSecured = booking.status === "deposit_secured";
   const cancelWindowActive = isDepositSecured && timeLeft > 0;
@@ -362,6 +442,48 @@ export default function SuccessPage() {
           </p>
         </div>
 
+        <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-6">
+          <h3 className="mb-4 text-sm font-semibold text-gray-900">Payment Breakdown</h3>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Deposit Amount</span>
+              <span className="font-semibold text-gray-900">
+                {formatCurrency(fees.depositAmount)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">
+                Stripe Processing Fee ({fees.stripePercentage}% + $0.30)
+              </span>
+              <span className="text-red-600">-{formatCurrency(fees.stripeFee)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">
+                HoldPay Service Fee ({fees.holdpayPercentage}%)
+              </span>
+              <span className="text-red-600">-{formatCurrency(fees.holdpayFee)}</span>
+            </div>
+            <div className="my-3 h-px bg-gray-300" />
+            <div className="flex justify-between">
+              <span className="font-semibold text-gray-900">Net to Provider</span>
+              <span className="text-lg font-bold text-green-700">
+                {formatCurrency(fees.netToProvider)}
+              </span>
+            </div>
+          </div>
+          <p className="mt-4 text-xs text-gray-500">
+            Payments settle per agreed terms. Fees deducted before transfer.
+          </p>
+
+          <button
+            onClick={downloadReceipt}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-3 text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            <span>📄</span>
+            <span>Download Receipt</span>
+          </button>
+        </div>
+
         <div
           className={`mb-5 rounded-2xl border p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] ${
             cancelWindowActive
@@ -420,5 +542,21 @@ export default function SuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function SuccessPageFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-700">
+      Loading your booking confirmation...
+    </div>
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<SuccessPageFallback />}>
+      <SuccessPageContent />
+    </Suspense>
   );
 }

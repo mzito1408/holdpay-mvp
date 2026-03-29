@@ -19,6 +19,7 @@ type BookingRecord = {
   reference: string;
   deposit_amount: number;
   service_date: string | null;
+  service_description: string | null;
   refund_policy: RefundPolicy;
   custom_refund_percentage: number | null;
   client_email: string | null;
@@ -366,6 +367,13 @@ export default function PaymentPage() {
             ) : null}
           </dl>
         </div>
+
+        {booking.service_description ? (
+          <div className="mb-6 rounded-xl bg-gray-50 p-4">
+            <h3 className="mb-2 text-sm font-semibold text-gray-900">Service Details</h3>
+            <p className="text-sm leading-relaxed text-gray-700">{booking.service_description}</p>
+          </div>
+        ) : null}
 
         <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-6">
           <h3 className="mb-2 text-lg font-semibold text-yellow-900">Cancellation Policy</h3>

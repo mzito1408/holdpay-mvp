@@ -12,7 +12,7 @@ function requireEnv(name: string) {
   return value;
 }
 
-const STRIPE_API_VERSION = "2024-11-20.acacia" as unknown as Stripe.LatestApiVersion;
+const STRIPE_API_VERSION: Stripe.LatestApiVersion = "2026-02-25.clover";
 
 let stripeServer: Stripe | null = null;
 

@@ -13,6 +13,7 @@ export default function SignUpPage() {
     email: "",
     password: "",
   });
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -237,10 +238,36 @@ export default function SignUpPage() {
               </button>
             </div>
 
+            <div className="mb-6 flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="terms"
+                required
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-[#0ea5e9] focus:ring-[#0ea5e9]"
+              />
+              <label htmlFor="terms" className="text-sm text-gray-700">
+                I agree to the{" "}
+                <Link href="/legal/terms" target="_blank" className="text-[#0ea5e9] hover:underline">
+                  Terms of Service
+                </Link>
+                {" "}and{" "}
+                <Link
+                  href="/legal/privacy"
+                  target="_blank"
+                  className="text-[#0ea5e9] hover:underline"
+                >
+                  Privacy Policy
+                </Link>
+                . I understand HoldPay charges a 2.1% service fee per transaction.
+              </label>
+            </div>
+
             <button
               type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-sky-500 px-4 py-4 text-base font-semibold text-white transition hover:bg-sky-600 disabled:opacity-50"
+              disabled={loading || !agreedToTerms}
+              className="btn-primary"
             >
               {loading ? "Creating Account..." : "Sign Up"}
             </button>
